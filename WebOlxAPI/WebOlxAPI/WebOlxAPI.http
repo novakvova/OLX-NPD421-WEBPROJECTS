@@ -1,0 +1,6 @@
+@WebOlxAPI_HostAddress = http://localhost:5150
+
+GET {{WebOlxAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
