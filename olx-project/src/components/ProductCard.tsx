@@ -1,65 +1,173 @@
-import { useState } from 'react'
-import { Heart, MapPin } from 'lucide-react'
-import type { Product } from '../services/api'
+import { useState } from "react";
+import { Heart, MapPin, Clock, Trash2 } from "lucide-react";
+import type { Product as APIProduct } from "../services/productsApi";
+import { useCart } from "../context/useCart";
+import { useFavorites } from "../context/useFavorites";
 
 interface Props {
-    product: Product
+    product: APIProduct;
+    onDelete?: () => void;
 }
 
-function timeAgo(dateStr: string): string {
-    const diff = Date.now() - new Date(dateStr).getTime()
-    const mins = Math.floor(diff / 60000)
-    const hours = Math.floor(diff / 3600000)
-    const days = Math.floor(diff / 86400000)
-    if (mins < 60) return `${mins} хв`
-    if (hours < 24) return `${hours} год`
-    if (days === 1) return 'Вчора'
-    return `${days} дн.`
-}
+export default function ProductCard({ product, onDelete }: Props) {
+    const [hovered, setHovered] = useState(false);
+    const [imgError, setImgError] = useState(false);
 
-export default function ProductCard({ product }: Props) {
-    const [isFav, setIsFav] = useState(product.isFavorite ?? false)
+    const { addToCart } = useCart();
+    const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
+
+    const favorite = isFavorite(Number(product.id));
+
+    const toggleFavorite = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (favorite) removeFromFavorites(Number(product.id));
+        else addToFavorites({ ...product, id: Number(product.id) });
+    };
+
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (onDelete) onDelete();
+    };
 
     return (
-        <div className="bg-white rounded-2xl overflow-hidden border-2 border-gray-200 hover:border-[#1976d2] hover:shadow-xl transition-all duration-200 cursor-pointer group">
+        <div
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            style={{
+                background: "#fff",
+                borderRadius: 14,
+                overflow: "hidden",
+                border: hovered ? "1.5px solid #0057b8" : "1.5px solid #e8edf2",
+                boxShadow: hovered
+                    ? "0 8px 24px rgba(0,87,184,0.12)"
+                    : "0 1px 4px rgba(0,0,0,0.05)",
+                transform: hovered ? "translateY(-3px)" : "none",
+                transition: "all 0.2s ease",
+                cursor: "pointer",
+                position: "relative",
+            }}
+        >
+            <div
+                style={{
+                    position: "relative",
+                    aspectRatio: "4/3",
+                    background: "#f4f6f9",
+                    overflow: "hidden",
+                }}
+            >
+                {!imgError ? (
+                    <img
+                        src={product.imageUrl}
+                        alt={product.title}
+                        onError={() => setImgError(true)}
+                        style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            transform: hovered ? "scale(1.05)" : "scale(1)",
+                            transition: "transform 0.4s ease",
+                        }}
+                    />
+                ) : (
+                    <div
+                        style={{
+                            width: "100%",
+                            height: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 48,
+                        }}
+                    >
+                        📦
+                    </div>
+                )}
 
-            {/* Image */}
-            <div className="relative overflow-hidden bg-gray-100">
-                <img
-                    src={product.imageUrl}
-                    alt={product.title}
-                    className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                />
                 <button
-                    onClick={e => { e.stopPropagation(); setIsFav(!isFav) }}
-                    className="absolute top-4 right-4 w-11 h-11 rounded-full bg-white/95 hover:bg-white flex items-center justify-center transition-all shadow-lg hover:shadow-xl"
+                    onClick={toggleFavorite}
+                    style={{
+                        position: "absolute",
+                        top: 10,
+                        right: 50,
+                        width: 34,
+                        height: 34,
+                        borderRadius: "50%",
+                        background: "rgba(255,255,255,0.95)",
+                        border: "none",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                    }}
                 >
                     <Heart
-                        size={22}
-                        strokeWidth={2.5}
-                        className={isFav ? 'fill-red-500 text-red-500' : 'text-gray-400'}
+                        size={16}
+                        strokeWidth={2}
+                        style={{
+                            fill: favorite ? "#e03131" : "none",
+                            color: favorite ? "#e03131" : "#8aa4bf",
+                        }}
                     />
                 </button>
+
+                {onDelete && (
+                    <button
+                        onClick={handleDelete}
+                        style={{
+                            position: "absolute",
+                            top: 10,
+                            right: 10,
+                            width: 34,
+                            height: 34,
+                            borderRadius: "50%",
+                            background: "rgba(255,255,255,0.95)",
+                            border: "none",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                        }}
+                    >
+                        <Trash2 size={16} strokeWidth={2} color="#8aa4bf" />
+                    </button>
+                )}
             </div>
 
-            {/* Info */}
-            <div className="p-4">
-                <p className="text-[#1976d2] text-xl font-black mb-2">
-                    {product.price.toLocaleString('uk-UA')} ₴
+            <div style={{ padding: "14px 16px" }}>
+                <p style={{ fontSize: 18, fontWeight: 800, color: "#0057b8", marginBottom: 6 }}>
+                    {product.price.toLocaleString("uk-UA")} ₴
                 </p>
-                <p className="text-gray-700 text-base leading-snug line-clamp-2 mb-3 min-h-[48px] font-medium">
-                    {product.title}
-                </p>
-                <div className="flex items-center justify-between pt-3 border-t-2 border-gray-100">
-                    <div className="flex items-center gap-1.5 text-gray-400 min-w-0">
-                        <MapPin size={15} className="flex-shrink-0" strokeWidth={2.5} />
-                        <span className="text-sm truncate font-medium">{product.location}</span>
-                    </div>
-                    <span className="text-sm text-gray-300 flex-shrink-0 ml-2 font-medium">
-            {timeAgo(product.createdAt)}
-          </span>
+                <p style={{ fontSize: 14, marginBottom: 10 }}>{product.title}</p>
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        addToCart(product);
+                    }}
+                    style={{
+                        marginBottom: 10,
+                        width: "100%",
+                        background: "#0057b8",
+                        color: "#fff",
+                        fontWeight: 600,
+                        padding: "10px",
+                        borderRadius: 12,
+                        border: "none",
+                        cursor: "pointer",
+                    }}
+                >
+                    Додати в кошик
+                </button>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#8aa4bf" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <MapPin size={13} /> {product.location}
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <Clock size={12} /> {new Date(product.createdAt).toLocaleDateString()}
+                    </span>
                 </div>
             </div>
         </div>
-    )
+    );
 }
